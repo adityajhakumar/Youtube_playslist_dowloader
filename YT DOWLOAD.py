@@ -1,33 +1,40 @@
-from pytube import Playlist
+# 📦 Install yt-dlp
+!pip install -q yt-dlp
+
+# 📁 Imports
 import os
-import time
+import shutil
+from IPython.display import FileLink
 
-def download_video(video, output_path):
-    print(f"Downloading: {video.title}")
-    success = False
-    for attempt in range(3):  # Retry up to 3 times
-        try:
-            video.streams.first().download(output_path, timeout=10)
-            print(f"{video.title} downloaded successfully!")
-            success = True
-            break  # Exit retry loop if download succeeds
-        except Exception as e:
-            print(f"Error downloading {video.title}: {e}")
-            print(f"Retrying download: {video.title}")
-            time.sleep(5)  # Wait for 5 seconds before retrying
-    if not success:
-        print(f"Failed to download {video.title}")
+# 🧾 Ask user for input
+playlist_url = input("🔗 Enter the YouTube playlist URL: ").strip()
 
-def download_playlist(playlist_url, output_path):
-    playlist = Playlist(playlist_url)
-    print(f"Downloading {len(playlist)} videos from the playlist: {playlist.title}...")
+print("\n🎧 What format do you want to download?")
+print("1. Audio Only (MP3)")
+print("2. Full Video (MP4)")
+choice = input("Enter 1 or 2: ").strip()
 
-    for index, video in enumerate(playlist.videos, start=1):
-        print(f"Video {index}/{len(playlist)}")
-        download_video(video, output_path)
+# 📂 Setup download directory
+download_dir = "yt_downloads"
+os.makedirs(download_dir, exist_ok=True)
 
-if __name__ == "__main__":
-    playlist_url = input("Enter the url of playlist: ")
-    output_path = input("Enter the output directory path: ").strip('"')  # Strip quotes from the input
-    os.makedirs(output_path, exist_ok=True)  # Ensure the directory exists or create it
-    download_playlist(playlist_url, output_path)
+# 🎯 Build yt-dlp command
+if choice == '1':
+    ytdlp_command = f'yt-dlp -f "bestaudio" --extract-audio --audio-format mp3 -o "{download_dir}/%(playlist_index)s - %(title).100s.%(ext)s" "{playlist_url}"'
+    print("\n🎧 Downloading as MP3 (audio only)...")
+elif choice == '2':
+    ytdlp_command = f'yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4][height<=720]" -o "{download_dir}/%(playlist_index)s - %(title).100s.%(ext)s" "{playlist_url}"'
+    print("\n🎥 Downloading as MP4 (video)...")
+else:
+    print("❌ Invalid choice. Please enter 1 or 2.")
+    raise SystemExit
+
+# 🚀 Run download
+!{ytdlp_command}
+
+# 🗜️ Zip the downloaded folder
+shutil.make_archive("lectures_download", 'zip', download_dir)
+print("\n✅ Zipped the videos into: lectures_download.zip")
+
+# 📥 Provide download link
+display(FileLink("lectures_download.zip"))
